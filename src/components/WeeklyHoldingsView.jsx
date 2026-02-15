@@ -25,7 +25,32 @@ function formatChange(change) {
   return num > 0 ? `+${num.toFixed(2)}%` : `${num.toFixed(2)}%`;
 }
 
-/** 단일 ETF 카드: 좌(오늘) + 우(하루전) 박스 */
+/** 오늘/하루전 종목을 같은 행에 정렬한 통합 리스트 생성 */
+function buildAlignedRows(today, yesterday) {
+  const yesterdayMap = new Map();
+  yesterday.forEach((s) => yesterdayMap.set(s.name, s));
+
+  const usedNames = new Set();
+  const rows = [];
+
+  // 오늘 종목 순서 기준으로 매칭
+  today.forEach((t) => {
+    const y = yesterdayMap.get(t.name);
+    rows.push({ today: t, yesterday: y || null });
+    usedNames.add(t.name);
+  });
+
+  // 하루전에만 있는 종목 (오늘 제외된 종목)
+  yesterday.forEach((y) => {
+    if (!usedNames.has(y.name)) {
+      rows.push({ today: null, yesterday: y });
+    }
+  });
+
+  return rows;
+}
+
+/** 단일 ETF 카드: 좌(오늘) + 우(하루전) 행 정렬 */
 function EtfCard({ etf, todayDate, yesterdayDate }) {
   if (etf.error) {
     return (
@@ -35,6 +60,8 @@ function EtfCard({ etf, todayDate, yesterdayDate }) {
       </Paper>
     );
   }
+
+  const alignedRows = buildAlignedRows(etf.today, etf.yesterday);
 
   return (
     <Paper sx={{ mb: 3, overflow: 'hidden' }}>
@@ -48,80 +75,76 @@ function EtfCard({ etf, todayDate, yesterdayDate }) {
         </Typography>
       </Box>
 
-      {/* 좌우 2박스 */}
-      <Stack direction="row" sx={{ minHeight: 200, overflowX: 'auto' }}>
-        {/* 왼쪽: 오늘 */}
-        <Box sx={{ flex: 1, minWidth: 250, borderRight: '1px solid #e0e0e0' }}>
-          <Box sx={{ bgcolor: '#1565c0', color: 'white', px: 2, py: 1, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-            <Typography variant="body2" fontWeight="bold">오늘</Typography>
-            <Typography variant="caption" sx={{ opacity: 0.8 }}>{todayDate}</Typography>
-          </Box>
-          <Box sx={{ px: 1, py: 0.5, bgcolor: '#f5f5f5', fontSize: '0.7rem', color: '#888' }}>
-            * 증감: 하루전 대비 비중 변화
-          </Box>
-          <TableContainer>
-            <Table size="small">
-              <TableHead>
-                <TableRow>
-                  <TableCell sx={{ fontWeight: 'bold', py: 0.5, width: 30 }}></TableCell>
-                  <TableCell sx={{ fontWeight: 'bold', py: 0.5 }}>종목명</TableCell>
-                  <TableCell align="right" sx={{ fontWeight: 'bold', py: 0.5 }}>비중(%)</TableCell>
-                  <TableCell align="right" sx={{ fontWeight: 'bold', py: 0.5 }}>증감*</TableCell>
-                </TableRow>
-              </TableHead>
-              <TableBody>
-                {etf.today.map((stock) => (
-                  <TableRow key={stock.rank} hover sx={{ '&:nth-of-type(odd)': { bgcolor: '#fafafa' } }}>
-                    <TableCell sx={{ py: 0.3, color: '#999', fontSize: '0.75rem' }}>{stock.rank}</TableCell>
-                    <TableCell sx={{ py: 0.3, whiteSpace: 'nowrap' }}>{stock.name}</TableCell>
-                    <TableCell align="right" sx={{ py: 0.3, whiteSpace: 'nowrap' }}>{stock.weight}%</TableCell>
-                    <TableCell
-                      align="right"
-                      sx={{
-                        py: 0.3,
-                        whiteSpace: 'nowrap',
-                        color: getChangeColor(stock.change),
-                        fontWeight: 'bold',
-                        fontSize: '0.85rem',
-                      }}
-                    >
-                      {formatChange(stock.change)}
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </TableContainer>
-        </Box>
-
-        {/* 오른쪽: 하루전 */}
-        <Box sx={{ flex: 1, minWidth: 200 }}>
-          <Box sx={{ bgcolor: '#f5f5f5', px: 2, py: 1, display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderBottom: '1px solid #e0e0e0' }}>
-            <Typography variant="body2" fontWeight="bold">하루전</Typography>
-            <Typography variant="caption" sx={{ color: '#888' }}>{yesterdayDate}</Typography>
-          </Box>
-          <TableContainer>
-            <Table size="small">
-              <TableHead>
-                <TableRow>
-                  <TableCell sx={{ fontWeight: 'bold', py: 0.5, width: 30 }}></TableCell>
-                  <TableCell sx={{ fontWeight: 'bold', py: 0.5 }}>종목명</TableCell>
-                  <TableCell align="right" sx={{ fontWeight: 'bold', py: 0.5 }}>비중(%)</TableCell>
-                </TableRow>
-              </TableHead>
-              <TableBody>
-                {etf.yesterday.map((stock) => (
-                  <TableRow key={stock.rank} hover sx={{ '&:nth-of-type(odd)': { bgcolor: '#fafafa' } }}>
-                    <TableCell sx={{ py: 0.3, color: '#999', fontSize: '0.75rem' }}>{stock.rank}</TableCell>
-                    <TableCell sx={{ py: 0.3, whiteSpace: 'nowrap' }}>{stock.name}</TableCell>
-                    <TableCell align="right" sx={{ py: 0.3, whiteSpace: 'nowrap' }}>{stock.weight}%</TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </TableContainer>
-        </Box>
-      </Stack>
+      <TableContainer sx={{ overflowX: 'auto' }}>
+        <Table size="small" sx={{ minWidth: 500 }}>
+          <TableHead>
+            {/* 오늘/하루전 그룹 헤더 */}
+            <TableRow>
+              <TableCell
+                colSpan={4}
+                sx={{ bgcolor: '#1565c0', color: 'white', fontWeight: 'bold', py: 0.8, textAlign: 'center', borderRight: '2px solid #fff' }}
+              >
+                오늘 ({todayDate})
+              </TableCell>
+              <TableCell
+                colSpan={3}
+                sx={{ bgcolor: '#78909c', color: 'white', fontWeight: 'bold', py: 0.8, textAlign: 'center' }}
+              >
+                하루전 ({yesterdayDate})
+              </TableCell>
+            </TableRow>
+            {/* 컬럼 헤더 */}
+            <TableRow sx={{ bgcolor: '#f5f5f5' }}>
+              <TableCell sx={{ fontWeight: 'bold', py: 0.5, width: 30 }}>#</TableCell>
+              <TableCell sx={{ fontWeight: 'bold', py: 0.5 }}>종목명</TableCell>
+              <TableCell align="right" sx={{ fontWeight: 'bold', py: 0.5, whiteSpace: 'nowrap' }}>비중(%)</TableCell>
+              <TableCell align="right" sx={{ fontWeight: 'bold', py: 0.5, whiteSpace: 'nowrap', borderRight: '2px solid #e0e0e0' }}>증감</TableCell>
+              <TableCell sx={{ fontWeight: 'bold', py: 0.5, width: 30 }}>#</TableCell>
+              <TableCell sx={{ fontWeight: 'bold', py: 0.5 }}>종목명</TableCell>
+              <TableCell align="right" sx={{ fontWeight: 'bold', py: 0.5, whiteSpace: 'nowrap' }}>비중(%)</TableCell>
+            </TableRow>
+          </TableHead>
+          <TableBody>
+            {alignedRows.map((row, i) => (
+              <TableRow key={i} hover sx={{ '&:nth-of-type(odd)': { bgcolor: '#fafafa' } }}>
+                {/* 오늘 */}
+                <TableCell sx={{ py: 0.3, color: '#999', fontSize: '0.75rem' }}>
+                  {row.today ? row.today.rank : ''}
+                </TableCell>
+                <TableCell sx={{ py: 0.3, whiteSpace: 'nowrap', color: row.today ? 'inherit' : '#ccc' }}>
+                  {row.today ? row.today.name : '-'}
+                </TableCell>
+                <TableCell align="right" sx={{ py: 0.3, whiteSpace: 'nowrap' }}>
+                  {row.today ? `${row.today.weight}%` : '-'}
+                </TableCell>
+                <TableCell
+                  align="right"
+                  sx={{
+                    py: 0.3,
+                    whiteSpace: 'nowrap',
+                    borderRight: '2px solid #e0e0e0',
+                    color: row.today ? getChangeColor(row.today.change) : '#ccc',
+                    fontWeight: 'bold',
+                    fontSize: '0.85rem',
+                  }}
+                >
+                  {row.today ? formatChange(row.today.change) : '제외'}
+                </TableCell>
+                {/* 하루전 */}
+                <TableCell sx={{ py: 0.3, color: '#999', fontSize: '0.75rem' }}>
+                  {row.yesterday ? row.yesterday.rank : ''}
+                </TableCell>
+                <TableCell sx={{ py: 0.3, whiteSpace: 'nowrap', color: row.yesterday ? 'inherit' : '#ccc' }}>
+                  {row.yesterday ? row.yesterday.name : '-'}
+                </TableCell>
+                <TableCell align="right" sx={{ py: 0.3, whiteSpace: 'nowrap' }}>
+                  {row.yesterday ? `${row.yesterday.weight}%` : '-'}
+                </TableCell>
+              </TableRow>
+            ))}
+          </TableBody>
+        </Table>
+      </TableContainer>
     </Paper>
   );
 }
