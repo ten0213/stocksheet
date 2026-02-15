@@ -206,7 +206,7 @@ export default function WeeklyHoldingsView() {
       {/* 결과 요약 칩 */}
       {scrapeData && (
         <Stack direction="row" spacing={1} sx={{ mb: 2, flexWrap: 'wrap', gap: 0.5 }}>
-          <Chip label={`총 ${totalStocks}건`} color="info" size="small" />
+       
           {scrapeData.results.map((r) => (
             <Chip
               key={r.etfName}
