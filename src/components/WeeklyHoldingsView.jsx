@@ -11,8 +11,8 @@ function getChangeColor(change) {
   if (!change || change === '신규') return '#4caf50';
   const num = parseFloat(change);
   if (isNaN(num)) return 'inherit';
-  if (num > 0) return '#4caf50';
-  if (num < 0) return '#f44336';
+  if (num > 0) return '#f44336';
+  if (num < 0) return '#1565c0';
   return '#888';
 }
 
@@ -90,7 +90,7 @@ function EtfCard({ etf, todayDate, yesterdayDate }) {
                 colSpan={3}
                 sx={{ bgcolor: '#78909c', color: 'white', fontWeight: 'bold', py: 0.8, textAlign: 'center' }}
               >
-                하루전 ({yesterdayDate})
+                직전영업일  ({yesterdayDate})
               </TableCell>
             </TableRow>
             {/* 컬럼 헤더 */}
@@ -198,7 +198,7 @@ export default function WeeklyHoldingsView() {
           sx={{ width: { xs: 150, sm: 180 } }}
         />
         <Typography variant="body2" color="text.secondary" noWrap>
-          하루전: {getPrevBusinessDay(selectedDate)}
+          직전영업일: {getPrevBusinessDay(selectedDate)}
         </Typography>
         <Button
           variant="contained"
@@ -229,7 +229,7 @@ export default function WeeklyHoldingsView() {
       {/* 결과 요약 칩 */}
       {scrapeData && (
         <Stack direction="row" spacing={1} sx={{ mb: 2, flexWrap: 'wrap', gap: 0.5 }}>
-       
+
           {scrapeData.results.map((r) => (
             <Chip
               key={r.etfName}
