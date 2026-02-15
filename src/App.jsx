@@ -1,13 +1,15 @@
 import { useState, useEffect, useCallback } from 'react';
-import { Box, Stack, CircularProgress } from '@mui/material';
+import { Box, Stack, CircularProgress, Tabs, Tab } from '@mui/material';
 import axios from 'axios';
 import Layout from './components/Layout';
 import DateSelector from './components/DateSelector';
 import EtfTabs from './components/EtfTabs';
 import HoldingsTable from './components/HoldingsTable';
 import ManualScrapeButton from './components/ManualScrapeButton';
+import WeeklyHoldingsView from './components/WeeklyHoldingsView';
 
 export default function App() {
+  const [viewTab, setViewTab] = useState(0);
   const [dates, setDates] = useState([]);
   const [selectedDate, setSelectedDate] = useState(null);
   const [etfNames, setEtfNames] = useState([]);
@@ -74,19 +76,43 @@ export default function App() {
 
   return (
     <Layout>
-      <Stack direction="row" spacing={2} alignItems="center" sx={{ mb: 3 }}>
-        <DateSelector dates={dates} selectedDate={selectedDate} onDateChange={setSelectedDate} />
-        <ManualScrapeButton onScrapeComplete={fetchDates} />
-      </Stack>
+      <Box sx={{ borderBottom: 1, borderColor: 'divider', mb: 3 }}>
+        <Tabs
+          value={viewTab}
+          onChange={(_, v) => setViewTab(v)}
+          variant="scrollable"
+          scrollButtons="auto"
+          allowScrollButtonsMobile
+        >
+          <Tab label="구성종목 조회" sx={{ minWidth: 'auto', whiteSpace: 'nowrap' }} />
+          <Tab label="오늘-전일간 비중변화" sx={{ minWidth: 'auto', whiteSpace: 'nowrap' }} />
+        </Tabs>
+      </Box>
 
-      <EtfTabs etfNames={etfNames} selectedEtf={selectedEtf} onEtfChange={setSelectedEtf} />
+      {viewTab === 0 ? (
+        <>
+          <Stack
+            direction="row"
+            spacing={2}
+            alignItems="center"
+            sx={{ mb: 3, flexWrap: 'wrap', gap: 1 }}
+          >
+            <DateSelector dates={dates} selectedDate={selectedDate} onDateChange={setSelectedDate} />
+            <ManualScrapeButton onScrapeComplete={fetchDates} />
+          </Stack>
 
-      {loading ? (
-        <Box sx={{ display: 'flex', justifyContent: 'center', mt: 4 }}>
-          <CircularProgress />
-        </Box>
+          <EtfTabs etfNames={etfNames} selectedEtf={selectedEtf} onEtfChange={setSelectedEtf} />
+
+          {loading ? (
+            <Box sx={{ display: 'flex', justifyContent: 'center', mt: 4 }}>
+              <CircularProgress />
+            </Box>
+          ) : (
+            <HoldingsTable holdings={holdings} />
+          )}
+        </>
       ) : (
-        <HoldingsTable holdings={holdings} />
+        <WeeklyHoldingsView />
       )}
     </Layout>
   );

@@ -9,6 +9,13 @@ export default defineConfig({
         target: 'http://13.125.139.31:8088',
         changeOrigin: true,
       },
+      '/timeetf': {
+        target: 'https://timeetf.co.kr',
+        changeOrigin: true,
+        rewrite: (path) => path.replace(/^\/timeetf/, ''),
+        secure: false,
+        cookieDomainRewrite: '',
+      },
     },
   },
 })

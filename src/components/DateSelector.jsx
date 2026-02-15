@@ -2,7 +2,7 @@ import { FormControl, InputLabel, Select, MenuItem } from '@mui/material';
 
 export default function DateSelector({ dates, selectedDate, onDateChange }) {
   return (
-    <FormControl sx={{ minWidth: 200 }}>
+    <FormControl sx={{ minWidth: { xs: 140, sm: 200 } }}>
       <InputLabel>날짜 선택</InputLabel>
       <Select
         value={selectedDate || ''}

@@ -5,7 +5,7 @@ export default function Layout({ children }) {
     <Box sx={{ display: 'flex', flexDirection: 'column', minHeight: '100vh' }}>
       <AppBar position="static">
         <Toolbar>
-          <Typography variant="h6" component="div">
+          <Typography variant="h6" component="div" noWrap>
             TIME ETF 구성종목 조회
           </Typography>
         </Toolbar>

@@ -17,27 +17,27 @@ export default function HoldingsTable({ holdings }) {
   }
 
   return (
-    <TableContainer component={Paper}>
-      <Table size="small">
+    <TableContainer component={Paper} sx={{ overflowX: 'auto' }}>
+      <Table size="small" sx={{ minWidth: 500 }}>
         <TableHead>
           <TableRow sx={{ backgroundColor: '#f5f5f5' }}>
-            <TableCell align="center" sx={{ fontWeight: 'bold' }}>순번</TableCell>
-            <TableCell align="center" sx={{ fontWeight: 'bold' }}>종목코드</TableCell>
-            <TableCell sx={{ fontWeight: 'bold' }}>종목명</TableCell>
-            <TableCell align="right" sx={{ fontWeight: 'bold' }}>수량</TableCell>
-            <TableCell align="right" sx={{ fontWeight: 'bold' }}>평가금액(원)</TableCell>
-            <TableCell align="right" sx={{ fontWeight: 'bold' }}>비중(%)</TableCell>
+            <TableCell align="center" sx={{ fontWeight: 'bold', whiteSpace: 'nowrap' }}>순번</TableCell>
+            <TableCell align="center" sx={{ fontWeight: 'bold', whiteSpace: 'nowrap' }}>종목코드</TableCell>
+            <TableCell sx={{ fontWeight: 'bold', whiteSpace: 'nowrap' }}>종목명</TableCell>
+            <TableCell align="right" sx={{ fontWeight: 'bold', whiteSpace: 'nowrap' }}>수량</TableCell>
+            <TableCell align="right" sx={{ fontWeight: 'bold', whiteSpace: 'nowrap' }}>평가금액(원)</TableCell>
+            <TableCell align="right" sx={{ fontWeight: 'bold', whiteSpace: 'nowrap' }}>비중(%)</TableCell>
           </TableRow>
         </TableHead>
         <TableBody>
           {holdings.map((h) => (
             <TableRow key={h.id} hover>
-              <TableCell align="center">{h.orderNo === -1 ? '-' : h.orderNo}</TableCell>
-              <TableCell align="center">{h.stockCode || '-'}</TableCell>
-              <TableCell>{h.stockName}</TableCell>
-              <TableCell align="right">{formatNumber(h.quantity)}</TableCell>
-              <TableCell align="right">{formatNumber(h.valuationAmount)}</TableCell>
-              <TableCell align="right">{h.weight != null ? h.weight.toFixed(2) : '-'}</TableCell>
+              <TableCell align="center" sx={{ whiteSpace: 'nowrap' }}>{h.orderNo === -1 ? '-' : h.orderNo}</TableCell>
+              <TableCell align="center" sx={{ whiteSpace: 'nowrap' }}>{h.stockCode || '-'}</TableCell>
+              <TableCell sx={{ whiteSpace: 'nowrap' }}>{h.stockName}</TableCell>
+              <TableCell align="right" sx={{ whiteSpace: 'nowrap' }}>{formatNumber(h.quantity)}</TableCell>
+              <TableCell align="right" sx={{ whiteSpace: 'nowrap' }}>{formatNumber(h.valuationAmount)}</TableCell>
+              <TableCell align="right" sx={{ whiteSpace: 'nowrap' }}>{h.weight != null ? h.weight.toFixed(2) : '-'}</TableCell>
             </TableRow>
           ))}
         </TableBody>
