@@ -194,7 +194,7 @@ export default function WeeklyHoldingsView() {
   return (
     <Box>
       {/* 상단 컨트롤 */}
-      <Stack direction="row" spacing={2} alignItems="center" sx={{ mb: 2, flexWrap: 'wrap', gap: 1 }}>
+      <Stack direction="row" spacing={{ xs: 1, sm: 2 }} alignItems="center" sx={{ mb: 2 }}>
         <TextField
           type="date"
           label="기준일"
@@ -202,7 +202,7 @@ export default function WeeklyHoldingsView() {
           onChange={(e) => handleDateChange(e.target.value)}
           size="small"
           slotProps={{ inputLabel: { shrink: true } }}
-          sx={{ width: { xs: 150, sm: 180 } }}
+          sx={{ width: { xs: 'auto', sm: 180 }, minWidth: 0, flex: { xs: 1, sm: 'none' } }}
         />
         <TextField
           type="date"
@@ -211,14 +211,14 @@ export default function WeeklyHoldingsView() {
           onChange={(e) => setCompareDate(e.target.value)}
           size="small"
           slotProps={{ inputLabel: { shrink: true } }}
-          sx={{ width: { xs: 150, sm: 180 } }}
+          sx={{ width: { xs: 'auto', sm: 180 }, minWidth: 0, flex: { xs: 1, sm: 'none' } }}
         />
         <Button
           variant="contained"
           startIcon={<PlayArrowIcon />}
           onClick={handleScrape}
           disabled={loading}
-          sx={{ whiteSpace: 'nowrap' }}
+          sx={{ whiteSpace: 'nowrap', flexShrink: 0 }}
         >
           {loading ? '스크래핑 중...' : '스크래핑 시작'}
         </Button>
