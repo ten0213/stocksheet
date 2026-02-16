@@ -48,20 +48,21 @@ function parseAllHoldings(doc) {
   return holdings;
 }
 
+/** timeetf.co.kr 페이지 직접 요청 (pdfDate 포함) */
+function fetchEtfPage(etf, pdfDate) {
+  return axios.get('/timeetf/m11_view.php', {
+    params: { idx: etf.idx, cate: etf.cate, pdfDate },
+    timeout: 20000,
+    responseType: 'text',
+  });
+}
+
 /** 단일 ETF 스크래핑: 오늘 + 하루전 전체 종목 */
 async function scrapeEtf(etf, todayDate, yesterdayDate) {
-  // 오늘 + 하루전 페이지 동시 로드 (백엔드 프록시 경유)
+  // 오늘 + 하루전 페이지 동시 로드 (직접 프록시 경유)
   const [todayRes, yesterdayRes] = await Promise.all([
-    axios.get('/api/etf/proxy/page', {
-      params: { idx: etf.idx, cate: etf.cate, pdfDate: todayDate },
-      timeout: 20000,
-      responseType: 'text',
-    }),
-    axios.get('/api/etf/proxy/page', {
-      params: { idx: etf.idx, cate: etf.cate, pdfDate: yesterdayDate },
-      timeout: 20000,
-      responseType: 'text',
-    }),
+    fetchEtfPage(etf, todayDate),
+    fetchEtfPage(etf, yesterdayDate),
   ]);
 
   const todayDoc = parseHtml(todayRes.data);
@@ -98,9 +99,16 @@ async function scrapeEtf(etf, todayDate, yesterdayDate) {
   };
 }
 
+/** 단일 ETF의 특정 날짜 구성종목 스크래핑 */
+export async function scrapeSingleDate(etf, targetDate) {
+  const res = await fetchEtfPage(etf, targetDate);
+  const doc = parseHtml(res.data);
+  return parseAllHoldings(doc);
+}
+
 /** 전체 5개 ETF 스크래핑 */
-export async function scrapeAll(todayDate, onProgress) {
-  const yesterdayDate = getPrevBusinessDay(todayDate);
+export async function scrapeAll(todayDate, onProgress, customYesterdayDate) {
+  const yesterdayDate = customYesterdayDate || getPrevBusinessDay(todayDate);
   const results = [];
 
   for (let i = 0; i < ETF_LIST.length; i++) {

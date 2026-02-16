@@ -71,7 +71,7 @@ function EtfCard({ etf, todayDate, yesterdayDate }) {
           {etf.etfName}
         </Typography>
         <Typography variant="caption" noWrap sx={{ opacity: 0.7 }}>
-          오늘 {etf.today.length}종목 | 하루전 {etf.yesterday.length}종목
+          기준일 {etf.today.length}종목 | 비교일 {etf.yesterday.length}종목
         </Typography>
       </Box>
 
@@ -84,13 +84,13 @@ function EtfCard({ etf, todayDate, yesterdayDate }) {
                 colSpan={4}
                 sx={{ bgcolor: '#1565c0', color: 'white', fontWeight: 'bold', py: 0.8, textAlign: 'center', borderRight: '2px solid #fff' }}
               >
-                오늘 ({todayDate})
+                기준일 ({todayDate})
               </TableCell>
               <TableCell
                 colSpan={3}
                 sx={{ bgcolor: '#78909c', color: 'white', fontWeight: 'bold', py: 0.8, textAlign: 'center' }}
               >
-                직전영업일  ({yesterdayDate})
+                비교일 ({yesterdayDate})
               </TableCell>
             </TableRow>
             {/* 컬럼 헤더 */}
@@ -150,22 +150,29 @@ function EtfCard({ etf, todayDate, yesterdayDate }) {
 }
 
 export default function WeeklyHoldingsView() {
-  const [selectedDate, setSelectedDate] = useState(
-    dayjs().day() === 0 || dayjs().day() === 6
-      ? getPrevBusinessDay(dayjs().format('YYYY-MM-DD'))
-      : dayjs().format('YYYY-MM-DD')
-  );
+  const defaultToday = dayjs().day() === 0 || dayjs().day() === 6
+    ? getPrevBusinessDay(dayjs().format('YYYY-MM-DD'))
+    : dayjs().format('YYYY-MM-DD');
+
+  const [selectedDate, setSelectedDate] = useState(defaultToday);
+  const [compareDate, setCompareDate] = useState(getPrevBusinessDay(defaultToday));
   const [loading, setLoading] = useState(false);
   const [progress, setProgress] = useState(null);
   const [scrapeData, setScrapeData] = useState(null);
   const [error, setError] = useState(null);
+
+  // 기준일 변경 시 비교일 자동 업데이트
+  const handleDateChange = (newDate) => {
+    setSelectedDate(newDate);
+    setCompareDate(getPrevBusinessDay(newDate));
+  };
 
   const handleScrape = useCallback(async () => {
     setLoading(true);
     setError(null);
     setScrapeData(null);
     try {
-      const data = await scrapeAll(selectedDate, setProgress);
+      const data = await scrapeAll(selectedDate, setProgress, compareDate);
       setScrapeData(data);
 
       const errors = data.results.filter((r) => r.error);
@@ -178,7 +185,7 @@ export default function WeeklyHoldingsView() {
       setLoading(false);
       setProgress(null);
     }
-  }, [selectedDate]);
+  }, [selectedDate, compareDate]);
 
   const totalStocks = scrapeData?.results.reduce(
     (sum, r) => sum + (r.today?.length || 0) + (r.yesterday?.length || 0), 0
@@ -190,16 +197,22 @@ export default function WeeklyHoldingsView() {
       <Stack direction="row" spacing={2} alignItems="center" sx={{ mb: 2, flexWrap: 'wrap', gap: 1 }}>
         <TextField
           type="date"
-          label="기준일 (오늘)"
+          label="기준일"
           value={selectedDate}
-          onChange={(e) => setSelectedDate(e.target.value)}
+          onChange={(e) => handleDateChange(e.target.value)}
           size="small"
           slotProps={{ inputLabel: { shrink: true } }}
           sx={{ width: { xs: 150, sm: 180 } }}
         />
-        <Typography variant="body2" color="text.secondary" noWrap>
-          직전영업일: {getPrevBusinessDay(selectedDate)}
-        </Typography>
+        <TextField
+          type="date"
+          label="비교일"
+          value={compareDate}
+          onChange={(e) => setCompareDate(e.target.value)}
+          size="small"
+          slotProps={{ inputLabel: { shrink: true } }}
+          sx={{ width: { xs: 150, sm: 180 } }}
+        />
         <Button
           variant="contained"
           startIcon={<PlayArrowIcon />}
@@ -255,7 +268,8 @@ export default function WeeklyHoldingsView() {
       {/* 빈 상태 */}
       {!loading && !scrapeData && (
         <Typography variant="body1" color="text.secondary" sx={{ mt: 4, textAlign: 'center' }}>
-          기준일을 선택하고 &quot;스크래핑 시작&quot; 버튼을 눌러주세요.
+          기준일을 선택하고 &quot;스크래핑 시작&quot; 버튼을 눌러주세요.<br />
+          비교일을 다르게 설정하면 과거 데이터도 조회할 수 있습니다.
         </Typography>
       )}
     </Box>

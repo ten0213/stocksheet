@@ -3,6 +3,10 @@
     {
       "source": "/api/:path*",
       "destination": "http://13.125.139.31:8088/api/:path*"
+    },
+    {
+      "source": "/timeetf/:path*",
+      "destination": "https://www.timeetf.co.kr/:path*"
     }
   ]
 }
