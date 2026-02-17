@@ -214,8 +214,8 @@ export default function WeeklyHoldingsView() {
             value={selectedDate}
             onChange={(e) => handleDateChange(e.target.value)}
             size="small"
-            slotProps={{ inputLabel: { shrink: true } }}
-            sx={{ flex: 1, minWidth: 0 }}
+            slotProps={{ inputLabel: { shrink: true }, input: { sx: { fontSize: '0.85rem' } } }}
+            sx={{ flex: 1, minWidth: 140 }}
           />
           <TextField
             type="date"
@@ -223,8 +223,8 @@ export default function WeeklyHoldingsView() {
             value={compareDate}
             onChange={(e) => handleCompareDateChange(e.target.value)}
             size="small"
-            slotProps={{ inputLabel: { shrink: true } }}
-            sx={{ flex: 1, minWidth: 0 }}
+            slotProps={{ inputLabel: { shrink: true }, input: { sx: { fontSize: '0.85rem' } } }}
+            sx={{ flex: 1, minWidth: 140 }}
           />
         </Stack>
         <Button
