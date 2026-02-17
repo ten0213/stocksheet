@@ -1,11 +1,11 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import {
   Box, Typography, Button, Table, TableBody, TableCell, TableContainer,
   TableHead, TableRow, Paper, Stack, LinearProgress, Chip, Alert, TextField,
 } from '@mui/material';
 import PlayArrowIcon from '@mui/icons-material/PlayArrow';
 import dayjs from 'dayjs';
-import { scrapeAll, getPrevBusinessDay } from '../services/timeetfScraper';
+import { scrapeAll, getPrevBusinessDay, adjustToBusinessDay } from '../services/timeetfScraper';
 
 function getChangeColor(change) {
   if (!change || change === '신규') return '#4caf50';
@@ -150,21 +150,35 @@ function EtfCard({ etf, todayDate, yesterdayDate }) {
 }
 
 export default function WeeklyHoldingsView() {
-  const defaultToday = dayjs().day() === 0 || dayjs().day() === 6
-    ? getPrevBusinessDay(dayjs().format('YYYY-MM-DD'))
-    : dayjs().format('YYYY-MM-DD');
-
-  const [selectedDate, setSelectedDate] = useState(defaultToday);
-  const [compareDate, setCompareDate] = useState(getPrevBusinessDay(defaultToday));
+  const [selectedDate, setSelectedDate] = useState(dayjs().format('YYYY-MM-DD'));
+  const [compareDate, setCompareDate] = useState('');
   const [loading, setLoading] = useState(false);
   const [progress, setProgress] = useState(null);
   const [scrapeData, setScrapeData] = useState(null);
   const [error, setError] = useState(null);
 
+  // 초기 날짜를 공휴일 API 기반으로 조정
+  useEffect(() => {
+    (async () => {
+      const today = dayjs().format('YYYY-MM-DD');
+      const adjustedToday = await adjustToBusinessDay(today);
+      const prevDay = await getPrevBusinessDay(adjustedToday);
+      setSelectedDate(adjustedToday);
+      setCompareDate(prevDay);
+    })();
+  }, []);
+
   // 기준일 변경 시 비교일 자동 업데이트
-  const handleDateChange = (newDate) => {
+  const handleDateChange = async (newDate) => {
     setSelectedDate(newDate);
-    setCompareDate(getPrevBusinessDay(newDate));
+    const prevDay = await getPrevBusinessDay(newDate);
+    setCompareDate(prevDay);
+  };
+
+  // 비교일 변경 시 휴장일이면 직전 개장일로 조정
+  const handleCompareDateChange = async (newDate) => {
+    const adjusted = await adjustToBusinessDay(newDate);
+    setCompareDate(adjusted);
   };
 
   const handleScrape = useCallback(async () => {
@@ -194,31 +208,33 @@ export default function WeeklyHoldingsView() {
   return (
     <Box>
       {/* 상단 컨트롤 */}
-      <Stack direction="row" spacing={{ xs: 1, sm: 2 }} alignItems="center" sx={{ mb: 2 }}>
-        <TextField
-          type="date"
-          label="기준일"
-          value={selectedDate}
-          onChange={(e) => handleDateChange(e.target.value)}
-          size="small"
-          slotProps={{ inputLabel: { shrink: true } }}
-          sx={{ width: { xs: 'auto', sm: 180 }, minWidth: 0, flex: { xs: 1, sm: 'none' } }}
-        />
-        <TextField
-          type="date"
-          label="비교일"
-          value={compareDate}
-          onChange={(e) => setCompareDate(e.target.value)}
-          size="small"
-          slotProps={{ inputLabel: { shrink: true } }}
-          sx={{ width: { xs: 'auto', sm: 180 }, minWidth: 0, flex: { xs: 1, sm: 'none' } }}
-        />
+      <Stack spacing={1} sx={{ mb: 2 }}>
+        <Stack direction="row" spacing={1} alignItems="center">
+          <TextField
+            type="date"
+            label="기준일"
+            value={selectedDate}
+            onChange={(e) => handleDateChange(e.target.value)}
+            size="small"
+            slotProps={{ inputLabel: { shrink: true } }}
+            sx={{ flex: 1, minWidth: 0 }}
+          />
+          <TextField
+            type="date"
+            label="비교일"
+            value={compareDate}
+            onChange={(e) => handleCompareDateChange(e.target.value)}
+            size="small"
+            slotProps={{ inputLabel: { shrink: true } }}
+            sx={{ flex: 1, minWidth: 0 }}
+          />
+        </Stack>
         <Button
           variant="contained"
           startIcon={<PlayArrowIcon />}
           onClick={handleScrape}
           disabled={loading}
-          sx={{ whiteSpace: 'nowrap', flexShrink: 0 }}
+          fullWidth
         >
           {loading ? '스크래핑 중...' : '스크래핑 시작'}
         </Button>

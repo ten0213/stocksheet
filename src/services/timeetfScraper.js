@@ -9,10 +9,50 @@ export const ETF_LIST = [
   { idx: 11, cate: '002', name: 'TIME 코스피액티브' },
 ];
 
-/** 이전 영업일 계산 (주말 건너뛰기) */
-export function getPrevBusinessDay(dateStr) {
+/** 공휴일 캐시 (연도별) */
+const holidayCache = new Map();
+
+/** Nager.Date API로 한국 공휴일 조회 (연도별 캐싱) */
+async function fetchHolidaysForYear(year) {
+  if (holidayCache.has(year)) return holidayCache.get(year);
+
+  const holidays = new Set();
+  try {
+    const res = await fetch(`https://date.nager.at/api/v3/PublicHolidays/${year}/KR`);
+    const data = await res.json();
+    data.forEach((h) => holidays.add(h.date));
+  } catch (err) {
+    console.error(`${year}년 공휴일 조회 실패:`, err);
+  }
+  // KRX 추가 휴장일: 근로자의 날(5/1), 연말 휴장(12/31)
+  holidays.add(`${year}-05-01`);
+  holidays.add(`${year}-12-31`);
+
+  holidayCache.set(year, holidays);
+  return holidays;
+}
+
+/** 해당 날짜가 개장일(영업일)인지 확인 */
+async function isBusinessDay(dateStr) {
+  const d = dayjs(dateStr);
+  if (d.day() === 0 || d.day() === 6) return false;
+  const holidays = await fetchHolidaysForYear(d.year());
+  return !holidays.has(d.format('YYYY-MM-DD'));
+}
+
+/** 주어진 날짜가 휴장일이면 직전 개장일로 조정 */
+export async function adjustToBusinessDay(dateStr) {
+  let d = dayjs(dateStr);
+  while (!(await isBusinessDay(d.format('YYYY-MM-DD')))) {
+    d = d.subtract(1, 'day');
+  }
+  return d.format('YYYY-MM-DD');
+}
+
+/** 이전 영업일 계산 (주말 + 공휴일 건너뛰기) */
+export async function getPrevBusinessDay(dateStr) {
   let d = dayjs(dateStr).subtract(1, 'day');
-  while (d.day() === 0 || d.day() === 6) {
+  while (!(await isBusinessDay(d.format('YYYY-MM-DD')))) {
     d = d.subtract(1, 'day');
   }
   return d.format('YYYY-MM-DD');
@@ -108,7 +148,7 @@ export async function scrapeSingleDate(etf, targetDate) {
 
 /** 전체 5개 ETF 스크래핑 */
 export async function scrapeAll(todayDate, onProgress, customYesterdayDate) {
-  const yesterdayDate = customYesterdayDate || getPrevBusinessDay(todayDate);
+  const yesterdayDate = customYesterdayDate || await getPrevBusinessDay(todayDate);
   const results = [];
 
   for (let i = 0; i < ETF_LIST.length; i++) {
