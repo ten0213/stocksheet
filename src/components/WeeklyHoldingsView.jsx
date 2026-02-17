@@ -157,13 +157,11 @@ export default function WeeklyHoldingsView() {
   const [scrapeData, setScrapeData] = useState(null);
   const [error, setError] = useState(null);
 
-  // 초기 날짜를 공휴일 API 기반으로 조정
+  // 초기 비교일을 공휴일 API 기반으로 설정
   useEffect(() => {
     (async () => {
       const today = dayjs().format('YYYY-MM-DD');
-      const adjustedToday = await adjustToBusinessDay(today);
-      const prevDay = await getPrevBusinessDay(adjustedToday);
-      setSelectedDate(adjustedToday);
+      const prevDay = await getPrevBusinessDay(today);
       setCompareDate(prevDay);
     })();
   }, []);
