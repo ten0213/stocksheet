@@ -15,19 +15,43 @@ export default function ManualScrapeButton({ onScrapeComplete }) {
     setOpen(false);
     setLoading(true);
     try {
-      const res = await axios.post('/api/etf/scrape');
+      const res = await axios.post('/api/etf/scrape', null, { timeout: 60000 });
+
+      if (!res.data || typeof res.data !== 'object') {
+        setSnackbar({
+          open: true,
+          message: '스크래핑 실패: 서버로부터 올바른 응답을 받지 못했습니다.',
+          severity: 'error',
+        });
+        return;
+      }
+
+      if (!res.data.totalHoldings || res.data.totalHoldings === 0) {
+        setSnackbar({
+          open: true,
+          message: '스크래핑 완료되었으나 수집된 데이터가 없습니다. 휴장일이거나 데이터가 아직 업데이트되지 않았을 수 있습니다.',
+          severity: 'warning',
+        });
+        onScrapeComplete?.();
+        return;
+      }
+
       setSnackbar({
         open: true,
-        message: `${res.data.message} (${res.data.totalHoldings}건)`,
+        message: `${res.data.message || '스크래핑 완료'} (${res.data.totalHoldings}건)`,
         severity: 'success',
       });
       onScrapeComplete?.();
     } catch (err) {
-      setSnackbar({
-        open: true,
-        message: '스크래핑 실패: ' + (err.response?.data?.message || err.message),
-        severity: 'error',
-      });
+      let message;
+      if (err.code === 'ECONNABORTED' || err.message?.includes('timeout')) {
+        message = '스크래핑 시간이 초과되었습니다. 잠시 후 다시 시도해 주세요.';
+      } else if (!err.response) {
+        message = '서버에 연결할 수 없습니다. 네트워크 상태를 확인해 주세요.';
+      } else {
+        message = '스크래핑 실패: ' + (err.response.data?.message || err.message);
+      }
+      setSnackbar({ open: true, message, severity: 'error' });
     } finally {
       setLoading(false);
     }
@@ -62,7 +86,7 @@ export default function ManualScrapeButton({ onScrapeComplete }) {
 
       <Snackbar
         open={snackbar.open}
-        autoHideDuration={4000}
+        autoHideDuration={snackbar.severity === 'success' ? 4000 : 6000}
         onClose={() => setSnackbar((s) => ({ ...s, open: false }))}
       >
         <Alert severity={snackbar.severity} variant="filled">
