@@ -1,15 +1,23 @@
 import { useState } from 'react';
 import {
   Button, Dialog, DialogTitle, DialogContent, DialogContentText, DialogActions,
-  CircularProgress, Snackbar, Alert
+  CircularProgress, Snackbar, Alert, Box, Typography, Chip, Stack
 } from '@mui/material';
 import RefreshIcon from '@mui/icons-material/Refresh';
 import axios from 'axios';
+
+const STATUS_CONFIG = {
+  SCRAPED: { label: '성공', color: 'success' },
+  ALREADY_EXISTS: { label: '이미 존재', color: 'info' },
+  EMPTY: { label: '데이터 없음', color: 'warning' },
+  FAILED: { label: '실패', color: 'error' },
+};
 
 export default function ManualScrapeButton({ onScrapeComplete }) {
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
   const [snackbar, setSnackbar] = useState({ open: false, message: '', severity: 'success' });
+  const [resultDialog, setResultDialog] = useState({ open: false, details: [], date: '' });
 
   const handleScrape = async () => {
     setOpen(false);
@@ -26,21 +34,50 @@ export default function ManualScrapeButton({ onScrapeComplete }) {
         return;
       }
 
-      if (!res.data.totalHoldings || res.data.totalHoldings === 0) {
+      const { totalNewHoldings, details, date } = res.data;
+      const failedDetails = details?.filter((d) => d.status === 'FAILED') || [];
+      const emptyDetails = details?.filter((d) => d.status === 'EMPTY') || [];
+      const hasProblems = failedDetails.length > 0 || emptyDetails.length > 0;
+
+      if (failedDetails.length === details?.length) {
+        // 전체 실패
         setSnackbar({
           open: true,
-          message: '스크래핑 완료되었으나 수집된 데이터가 없습니다. 휴장일이거나 데이터가 아직 업데이트되지 않았을 수 있습니다.',
+          message: '모든 ETF 스크래핑에 실패했습니다. 외부 사이트 상태를 확인해 주세요.',
+          severity: 'error',
+        });
+        setResultDialog({ open: true, details: details || [], date: date || '' });
+        onScrapeComplete?.();
+        return;
+      }
+
+      if (totalNewHoldings === 0 && !hasProblems) {
+        setSnackbar({
+          open: true,
+          message: '스크래핑 완료되었으나 새로 수집된 데이터가 없습니다. 이미 수집되었거나 휴장일일 수 있습니다.',
           severity: 'warning',
         });
         onScrapeComplete?.();
         return;
       }
 
-      setSnackbar({
-        open: true,
-        message: `${res.data.message || '스크래핑 완료'} (${res.data.totalHoldings}건)`,
-        severity: 'success',
-      });
+      if (hasProblems) {
+        // 일부 성공, 일부 실패
+        const failedNames = [...failedDetails, ...emptyDetails].map((d) => d.etfName).join(', ');
+        setSnackbar({
+          open: true,
+          message: `스크래핑 부분 완료 (${totalNewHoldings}건). 일부 ETF 실패: ${failedNames}`,
+          severity: 'warning',
+        });
+        setResultDialog({ open: true, details: details || [], date: date || '' });
+      } else {
+        setSnackbar({
+          open: true,
+          message: `${res.data.message || '스크래핑 완료'} (${totalNewHoldings}건)`,
+          severity: 'success',
+        });
+      }
+
       onScrapeComplete?.();
     } catch (err) {
       let message;
@@ -87,6 +124,36 @@ export default function ManualScrapeButton({ onScrapeComplete }) {
           <Button onClick={handleScrape} variant="contained" autoFocus>
             실행
           </Button>
+        </DialogActions>
+      </Dialog>
+
+      <Dialog
+        open={resultDialog.open}
+        onClose={() => setResultDialog((s) => ({ ...s, open: false }))}
+        maxWidth="sm"
+        fullWidth
+      >
+        <DialogTitle>스크래핑 결과 상세 ({resultDialog.date})</DialogTitle>
+        <DialogContent>
+          <Stack spacing={1.5} sx={{ mt: 1 }}>
+            {resultDialog.details.map((detail, idx) => {
+              const config = STATUS_CONFIG[detail.status] || { label: detail.status, color: 'default' };
+              return (
+                <Box key={idx} sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                  <Chip label={config.label} color={config.color} size="small" sx={{ minWidth: 80 }} />
+                  <Typography variant="body2" sx={{ flex: 1 }}>
+                    <strong>{detail.etfName}</strong>
+                  </Typography>
+                  <Typography variant="caption" color="text.secondary">
+                    {detail.message}
+                  </Typography>
+                </Box>
+              );
+            })}
+          </Stack>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setResultDialog((s) => ({ ...s, open: false }))}>확인</Button>
         </DialogActions>
       </Dialog>
 

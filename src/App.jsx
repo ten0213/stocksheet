@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { Box, Stack, CircularProgress, Tabs, Tab } from '@mui/material';
+import { Box, Stack, CircularProgress, Tabs, Tab, Alert, Snackbar } from '@mui/material';
 import axios from 'axios';
 import Layout from './components/Layout';
 import DateSelector from './components/DateSelector';
@@ -16,9 +16,24 @@ export default function App() {
   const [selectedEtf, setSelectedEtf] = useState(null);
   const [holdings, setHoldings] = useState([]);
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState(null);
+
+  const getErrorMessage = (err, context) => {
+    if (err.code === 'ECONNABORTED' || err.message?.includes('timeout')) {
+      return `${context} 시간이 초과되었습니다. 잠시 후 다시 시도해 주세요.`;
+    }
+    if (!err.response) {
+      return '서버에 연결할 수 없습니다. 네트워크 상태를 확인해 주세요.';
+    }
+    if (err.response.status >= 500) {
+      return `서버 오류가 발생했습니다(${err.response.status}). 잠시 후 다시 시도해 주세요.`;
+    }
+    return `${context} 실패: ${err.response.data?.message || err.message}`;
+  };
 
   const fetchDates = useCallback(async () => {
     try {
+      setError(null);
       const res = await axios.get('/api/etf/dates');
       setDates(res.data);
       if (res.data.length > 0) {
@@ -31,6 +46,7 @@ export default function App() {
       }
     } catch (err) {
       console.error('Failed to fetch dates:', err);
+      setError(getErrorMessage(err, '날짜 목록 조회'));
     }
   }, []);
 
@@ -52,6 +68,10 @@ export default function App() {
         }
       } catch (err) {
         console.error('Failed to fetch ETF names:', err);
+        setError(getErrorMessage(err, 'ETF 목록 조회'));
+        setEtfNames([]);
+        setSelectedEtf(null);
+        setHoldings([]);
       }
     })();
   }, [selectedDate]);
@@ -67,6 +87,7 @@ export default function App() {
         setHoldings(res.data);
       } catch (err) {
         console.error('Failed to fetch holdings:', err);
+        setError(getErrorMessage(err, '구성종목 조회'));
         setHoldings([]);
       } finally {
         setLoading(false);
@@ -88,6 +109,12 @@ export default function App() {
           <Tab label="오늘-전일간 비중변화" sx={{ minWidth: 'auto', whiteSpace: 'nowrap' }} />
         </Tabs>
       </Box>
+
+      {error && (
+        <Alert severity="error" sx={{ mb: 2 }} onClose={() => setError(null)}>
+          {error}
+        </Alert>
+      )}
 
       {viewTab === 0 ? (
         <>
