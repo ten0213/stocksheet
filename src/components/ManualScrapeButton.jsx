@@ -48,6 +48,12 @@ export default function ManualScrapeButton({ onScrapeComplete }) {
         message = '스크래핑 시간이 초과되었습니다. 잠시 후 다시 시도해 주세요.';
       } else if (!err.response) {
         message = '서버에 연결할 수 없습니다. 네트워크 상태를 확인해 주세요.';
+      } else if (err.response.status === 403) {
+        message = '접근이 거부되었습니다(403). 서버 권한 설정을 확인해 주세요.';
+      } else if (err.response.status === 404) {
+        message = '스크래핑 API를 찾을 수 없습니다(404). 서버 배포 상태를 확인해 주세요.';
+      } else if (err.response.status >= 500) {
+        message = `서버 오류가 발생했습니다(${err.response.status}). 잠시 후 다시 시도해 주세요.`;
       } else {
         message = '스크래핑 실패: ' + (err.response.data?.message || err.message);
       }
