@@ -1,16 +1,224 @@
-# React + Vite
+# ETF 구성종목 조회 서비스
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+**TIME ETF** 5종의 구성종목 데이터를 날짜별로 조회하고, 기준일과 비교일 간의 **비중 변화를 실시간으로 시각화**하는 웹 애플리케이션입니다.
 
-Currently, two official plugins are available:
+---
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Babel](https://babeljs.io/) (or [oxc](https://oxc.rs) when used in [rolldown-vite](https://vite.dev/guide/rolldown)) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+## 목차
 
-## React Compiler
+- [주요 기능](#주요-기능)
+- [지원 ETF](#지원-etf)
+- [기술 스택](#기술-스택)
+- [프로젝트 구조](#프로젝트-구조)
+- [화면 설명](#화면-설명)
+- [시작하기](#시작하기)
+- [환경 변수 및 API 연동](#환경-변수-및-api-연동)
+- [배포](#배포)
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+---
 
-## Expanding the ESLint configuration
+## 주요 기능
 
-If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and [`typescript-eslint`](https://typescript-eslint.io) in your project.
+### 1. 구성종목 조회
+- 날짜 드롭다운으로 수집된 날짜 중 원하는 날짜를 선택
+- ETF별 탭으로 5개 펀드를 전환하며 구성종목 확인
+- 종목코드, 종목명, 수량, 평가금액(원), 비중(%) 일괄 표시
+- 수동 스크래핑 버튼으로 오늘 날짜 데이터를 즉시 수집 (백엔드 API 호출)
+
+### 2. 오늘-전일간 비중변화
+- 기준일과 비교일을 자유롭게 설정하여 비중 변화 확인
+- **timeetf.co.kr** 에서 클라이언트 사이드 실시간 스크래핑
+- 기준일 기준 비중 내림차순 정렬, 신규 편입 / 편출 종목 구분 표시
+- 비중 증가 → 빨간색 / 비중 감소 → 파란색 / 신규 편입 → 초록색 색상 코딩
+- 각 ETF별 카드 형태로 좌(기준일) - 우(비교일) 대비 레이아웃 제공
+- 스크래핑 진행 상황을 Progress Bar로 실시간 표시
+
+### 3. 한국 주식시장 영업일 자동 계산
+- 기준일 변경 시 비교일을 **직전 영업일**로 자동 설정
+- 비교일을 수동 입력 시 휴장일이면 직전 영업일로 자동 조정
+- 주말, 법정 공휴일, **근로자의 날(5/1)**, **연말 휴장(12/31)** 처리
+
+---
+
+## 지원 ETF
+
+| ETF명 | 분류 |
+|---|---|
+| TIME Korea플러스배당액티브 | 배당 |
+| TIME K신재생에너지액티브 | 신재생에너지 |
+| TIME K이노베이션액티브 | 이노베이션 |
+| TIME 코리아밸류업액티브 | 밸류업 |
+| TIME 코스피액티브 | 코스피 |
+
+---
+
+## 기술 스택
+
+| 구분 | 기술 |
+|---|---|
+| 프레임워크 | React 19 |
+| 번들러 | Vite 7 |
+| UI 라이브러리 | MUI (Material UI) v7 |
+| HTTP 클라이언트 | Axios |
+| 날짜 처리 | Day.js |
+| 공휴일 API | Nager.Date (한국 공휴일) |
+| 배포 | Vercel |
+
+---
+
+## 프로젝트 구조
+
+```
+etf-frontend/
+├── public/
+├── src/
+│   ├── components/
+│   │   ├── Layout.jsx              # 공통 레이아웃 (헤더, 컨테이너)
+│   │   ├── DateSelector.jsx        # 날짜 선택 드롭다운
+│   │   ├── EtfTabs.jsx             # ETF 전환 탭
+│   │   ├── HoldingsTable.jsx       # 구성종목 테이블
+│   │   ├── ManualScrapeButton.jsx  # 수동 스크래핑 버튼 및 결과 다이얼로그
+│   │   └── WeeklyHoldingsView.jsx  # 기준일-비교일 비중변화 뷰
+│   ├── services/
+│   │   └── timeetfScraper.js       # timeetf.co.kr 스크래핑 로직 및 영업일 계산
+│   ├── App.jsx                     # 루트 컴포넌트 및 상태 관리
+│   └── main.jsx
+├── vercel.json                     # Vercel 리라이트 (API 프록시)
+├── vite.config.js
+└── package.json
+```
+
+---
+
+## 화면 설명
+
+### 구성종목 조회 탭
+
+```
+[ 날짜 선택 ▼ ]  [ 수동 스크래핑 버튼 ]
+
+[ ETF탭1 ] [ ETF탭2 ] [ ETF탭3 ] ...
+
+┌──────┬──────────┬──────────────┬──────────┬──────────────┬────────┐
+│ 순번 │ 종목코드 │   종목명     │   수량   │ 평가금액(원) │ 비중(%)│
+├──────┼──────────┼──────────────┼──────────┼──────────────┼────────┤
+│  1   │ 005930   │ 삼성전자     │ 100,000  │ 7,500,000,000│  25.30 │
+│  2   │ 000660   │ SK하이닉스   │  50,000  │ 3,000,000,000│  15.20 │
+└──────┴──────────┴──────────────┴──────────┴──────────────┴────────┘
+```
+
+### 오늘-전일간 비중변화 탭
+
+```
+[ 기준일: 2025-01-20 ] [ 비교일: 2025-01-17 ]
+[ 스크래핑 시작 ▶ ]
+
+▓▓▓▓▓▓▓░░░ TIME Korea플러스배당액티브 처리 중... (3/5)
+
+┌─────────────────────────────────────┬───────────────────────────┐
+│         기준일 (2025-01-20)         │    비교일 (2025-01-17)    │
+├──┬──────────────┬────────┬──────────┼──┬──────────────┬─────────┤
+│# │   종목명     │ 비중(%)│   증감   │# │   종목명     │ 비중(%) │
+├──┼──────────────┼────────┼──────────┼──┼──────────────┼─────────┤
+│1 │ 삼성전자     │ 25.30% │ +0.50%   │1 │ 삼성전자     │ 24.80%  │
+│2 │ SK하이닉스   │ 15.20% │ -0.30%   │2 │ SK하이닉스   │ 15.50%  │
+│3 │ 신규종목     │  2.10% │  신규    │  │      -       │    -    │
+└──┴──────────────┴────────┴──────────┴──┴──────────────┴─────────┘
+```
+
+---
+
+## 시작하기
+
+### 요구 사항
+
+- Node.js 18 이상
+- npm 또는 yarn
+
+### 설치 및 실행
+
+```bash
+# 저장소 클론
+git clone https://github.com/<your-username>/etf-frontend.git
+cd etf-frontend
+
+# 의존성 설치
+npm install
+
+# 개발 서버 실행
+npm run dev
+```
+
+브라우저에서 `http://localhost:5173` 으로 접속합니다.
+
+### 빌드
+
+```bash
+npm run build
+```
+
+빌드 결과물은 `dist/` 디렉터리에 생성됩니다.
+
+---
+
+## 환경 변수 및 API 연동
+
+이 프로젝트는 두 가지 외부 연동을 사용합니다.
+
+### 1. 백엔드 API (구성종목 조회 / 수동 스크래핑)
+
+| 엔드포인트 | 설명 |
+|---|---|
+| `GET /api/etf/dates` | 수집된 날짜 목록 조회 |
+| `GET /api/etf/dates/:date/etfs` | 특정 날짜의 ETF 목록 조회 |
+| `GET /api/etf/dates/:date/holdings?etfName=` | 특정 ETF의 구성종목 조회 |
+| `POST /api/etf/scrape` | 오늘 날짜 구성종목 수동 스크래핑 트리거 |
+
+### 2. timeetf.co.kr 프록시
+
+비중변화 탭에서 클라이언트가 `timeetf.co.kr` 를 직접 스크래핑할 때 CORS 우회를 위해 Vercel 리라이트를 사용합니다.
+
+```json
+// vercel.json
+{
+  "rewrites": [
+    { "source": "/api/:path*",      "destination": "http://<backend-server>/api/:path*" },
+    { "source": "/timeetf/:path*",  "destination": "https://www.timeetf.co.kr/:path*" }
+  ]
+}
+```
+
+로컬 개발 환경에서는 `vite.config.js` 에 프록시 설정을 추가해야 합니다.
+
+```js
+// vite.config.js 예시
+export default defineConfig({
+  plugins: [react()],
+  server: {
+    proxy: {
+      '/api': 'http://localhost:8088',
+      '/timeetf': {
+        target: 'https://www.timeetf.co.kr',
+        changeOrigin: true,
+        rewrite: (path) => path.replace(/^\/timeetf/, ''),
+      },
+    },
+  },
+});
+```
+
+---
+
+## 배포
+
+이 프로젝트는 **Vercel** 을 통해 배포됩니다.
+
+1. GitHub 저장소를 Vercel 프로젝트로 연결
+2. `main` 브랜치에 push 시 자동 배포
+3. `vercel.json` 의 리라이트 규칙이 자동 적용됨
+
+---
+
+## 라이선스
+
+This project is for personal use. All rights reserved.
