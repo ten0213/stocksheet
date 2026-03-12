@@ -2,11 +2,13 @@ import dayjs from 'dayjs';
 import axios from 'axios';
 
 export const ETF_LIST = [
+  { idx: 24, cate: '002', name: 'TIME 코스닥액티브' },
   { idx: 12, cate: '002', name: 'TIME Korea플러스배당액티브' },
   { idx: 16, cate: '002', name: 'TIME K신재생에너지액티브' },
   { idx: 17, cate: '002', name: 'TIME K이노베이션액티브' },
   { idx: 15, cate: '002', name: 'TIME 코리아밸류업액티브' },
   { idx: 11, cate: '002', name: 'TIME 코스피액티브' },
+
 ];
 
 /** 공휴일 캐시 (연도별) */

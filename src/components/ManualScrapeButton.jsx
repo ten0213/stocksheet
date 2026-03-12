@@ -116,7 +116,7 @@ export default function ManualScrapeButton({ onScrapeComplete }) {
         <DialogTitle>수동 스크래핑</DialogTitle>
         <DialogContent>
           <DialogContentText>
-            5개 ETF의 구성종목 데이터를 지금 수집하시겠습니까?
+            6개 ETF의 구성종목 데이터를 지금 수집하시겠습니까?
           </DialogContentText>
         </DialogContent>
         <DialogActions>
