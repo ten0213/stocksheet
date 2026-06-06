@@ -6,7 +6,7 @@ export default defineConfig({
   server: {
     proxy: {
       '/api': {
-        target: 'http://13.125.139.31:8088',
+        target: 'http://134.185.103.190:8082',
         changeOrigin: true,
       },
       '/timeetf': {
